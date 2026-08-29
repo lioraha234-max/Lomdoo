@@ -705,11 +705,16 @@ async function apiCall(path, method, body){
   try{
     res = await fetch(path, {method, headers, body: body!==undefined ? JSON.stringify(body) : undefined});
   }catch(e){
-    throw new Error('לא ניתן להתחבר לשרת');
+    throw new Error('לא ניתן להתחבר לשרת (' + e.message + ')');
   }
+  const rawText = await res.text().catch(()=> '');
   let data = {};
-  try{ data = await res.json(); }catch(e){}
-  if(!res.ok) throw new Error(data.error || 'שגיאה');
+  try{ data = JSON.parse(rawText); }catch(e){}
+  if(!res.ok){
+    if(data.error) throw new Error(data.error);
+    const snippet = rawText ? rawText.slice(0,180) : '(תשובה ריקה)';
+    throw new Error(`שגיאה מהשרת — סטטוס ${res.status}: ${snippet}`);
+  }
   return data;
 }
 
