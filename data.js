@@ -9,7 +9,8 @@ export async function onRequestGet({ request, env }) {
   if (!username) return jsonResponse({ error: 'לא מחובר' }, 401);
 
   const raw = await env.LOMDOO_KV.get('data:' + username);
-  const payload = raw ? JSON.parse(raw) : { sets: [], grades: [] };
+  const payload = raw ? JSON.parse(raw) : { sets: [], grades: [], xp: 0 };
+  if (typeof payload.xp !== 'number') payload.xp = 0;
   return jsonResponse(payload);
 }
 
@@ -27,6 +28,7 @@ export async function onRequestPost({ request, env }) {
   const payload = {
     sets: Array.isArray(body.sets) ? body.sets : [],
     grades: Array.isArray(body.grades) ? body.grades : [],
+    xp: typeof body.xp === 'number' ? body.xp : 0,
     updatedAt: new Date().toISOString()
   };
   await env.LOMDOO_KV.put('data:' + username, JSON.stringify(payload));
