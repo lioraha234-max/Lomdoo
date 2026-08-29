@@ -22,6 +22,7 @@
     --green:#7fbf8f;
     --orange:#e8935a;
     --purple:#b48ee0;
+    --teal:#4fc3b8;
   }
   *{box-sizing:border-box;}
   body{
@@ -74,6 +75,16 @@
   .tab-btn[data-tab="cards"]{--tab-color:var(--green);}
   .tab-btn[data-tab="grades"]{--tab-color:var(--orange);}
   .tab-btn[data-tab="achievements"]{--tab-color:var(--purple);}
+  .tab-btn[data-tab="tutor"]{--tab-color:var(--teal);}
+
+  /* ---- AI Tutor chat ---- */
+  .tutor-chat{display:flex;flex-direction:column;gap:12px;max-height:56vh;overflow-y:auto;padding:6px 2px;margin-bottom:14px;}
+  .chat-msg{max-width:82%;padding:12px 15px;border-radius:16px;font-size:14px;line-height:1.65;white-space:pre-wrap;}
+  .chat-msg.assistant{align-self:flex-start;background:var(--paper);color:#241f14;border-bottom-left-radius:4px;}
+  .chat-msg.user{align-self:flex-end;background:var(--teal);color:#04211d;border-bottom-right-radius:4px;font-weight:500;}
+  .tutor-loading{align-self:flex-start;color:var(--muted);font-size:13px;padding:6px 15px;}
+  .chat-input-row{display:flex;gap:8px;}
+  .chat-input-row input{flex:1;}
 
   .page{display:none;}
   .page.active{display:block;}
@@ -506,6 +517,7 @@
   <nav class="tabs" id="tabsNav">
     <button class="tab-btn active" data-tab="material">📎 חומר לימוד</button>
     <button class="tab-btn" data-tab="summary">✏️ סיכום</button>
+    <button class="tab-btn" data-tab="tutor">🎓 למד אותי</button>
     <button class="tab-btn" data-tab="practice">💬 שאלות תרגול</button>
     <button class="tab-btn" data-tab="quiz">📝 מבחן אמריקאי</button>
     <button class="tab-btn" data-tab="cards">🗂️ כרטיסיות</button>
@@ -554,6 +566,14 @@
     <div class="card">
       <h2>סיכום</h2>
       <div id="summaryContent"><div class="empty">בחרו ערכת לימוד בלשונית "חומר לימוד"</div></div>
+    </div>
+  </section>
+
+  <!-- TUTOR -->
+  <section class="panel" id="panel-tutor">
+    <div class="card">
+      <h2>🎓 למד אותי</h2>
+      <div id="tutorContent"><div class="empty">בחרו ערכת לימוד בלשונית "חומר לימוד"</div></div>
     </div>
   </section>
 
@@ -823,7 +843,7 @@ async function syncAfterLogin(){
     await storageSet('xp', String(xpTotal));
     if(sets.length && !sets.find(s=>s.id===activeSetId)) activeSetId = sets[0].id;
     renderSetList(); renderActiveSetLabel();
-    renderSummary(); renderPractice(); renderQuiz(); renderCards(); renderGrades();
+    renderSummary(); renderTutor(); renderPractice(); renderQuiz(); renderCards(); renderGrades();
     renderStats(); refreshAchievements(false); renderDailyQuestion(); renderDailyTask();
   }catch(e){
     showToast('החיבור לענן נכשל — ' + (e.message || 'שגיאה'));
@@ -1094,7 +1114,7 @@ function startDailyTaskStep(action, target){
   quizAnswers = {}; quizGraded = false; cardIndex = 0;
   if(action === 'cards') reviewUnknownOnly = true;
   renderSetList(); renderActiveSetLabel();
-  renderSummary(); renderPractice(); renderQuiz(); renderCards();
+  renderSummary(); renderTutor(); renderPractice(); renderQuiz(); renderCards();
   const targetBtn = document.querySelector(`.tab-btn[data-tab="${action}"]`);
   if(targetBtn) targetBtn.click();
   markDailyStepStarted(action);
@@ -1116,7 +1136,7 @@ async function markDailyStepStarted(action){
 }
 
 // ---------- Tabs ----------
-const tabColors = {material:'var(--yellow)',summary:'var(--yellow)',practice:'var(--blue)',quiz:'var(--pink)',cards:'var(--green)',grades:'var(--orange)',achievements:'var(--purple)'};
+const tabColors = {material:'var(--yellow)',summary:'var(--yellow)',tutor:'var(--teal)',practice:'var(--blue)',quiz:'var(--pink)',cards:'var(--green)',grades:'var(--orange)',achievements:'var(--purple)'};
 function moveIndicator(btn){
   const ind = document.getElementById('tabIndicator');
   const nav = document.getElementById('tabsNav');
@@ -1363,7 +1383,7 @@ searchResultsEl.addEventListener('click', (e)=>{
   activeSetId = row.dataset.set;
   quizAnswers = {}; quizGraded = false; cardIndex = 0;
   renderSetList(); renderActiveSetLabel();
-  renderSummary(); renderPractice(); renderQuiz(); renderCards();
+  renderSummary(); renderTutor(); renderPractice(); renderQuiz(); renderCards();
   searchInput.value = '';
   searchResultsEl.style.display = 'none';
   const targetBtn = document.querySelector(`.tab-btn[data-tab="${row.dataset.tab}"]`);
@@ -1441,7 +1461,7 @@ document.getElementById('importCodeBtn').addEventListener('click', async ()=>{
     document.getElementById('importCodeInput').value = '';
     document.getElementById('importBox').classList.remove('open');
     renderSetList(); renderActiveSetLabel();
-    renderSummary(); renderPractice(); renderQuiz(); renderCards();
+    renderSummary(); renderTutor(); renderPractice(); renderQuiz(); renderCards();
     renderStats(); refreshAchievements(true);
     renderDailyQuestion();
     renderDailyTask();
@@ -1487,7 +1507,7 @@ document.getElementById('importDataFile').addEventListener('change', (e)=>{
       await saveSets(); await saveGrades();
       if(sets.length && !activeSetId) activeSetId = sets[0].id;
       renderSetList(); renderActiveSetLabel();
-      renderSummary(); renderPractice(); renderQuiz(); renderCards(); renderGrades();
+      renderSummary(); renderTutor(); renderPractice(); renderQuiz(); renderCards(); renderGrades();
       renderStats(); refreshAchievements(true);
       renderDailyQuestion();
       renderDailyTask();
@@ -1522,7 +1542,7 @@ document.getElementById('createSetBtn').addEventListener('click', async ()=>{
   await saveSets();
   renderSetList();
   renderActiveSetLabel();
-  renderSummary(); renderPractice(); renderQuiz(); renderCards();
+  renderSummary(); renderTutor(); renderPractice(); renderQuiz(); renderCards();
   renderStats();
   refreshAchievements(true);
   renderDailyQuestion();
@@ -1588,7 +1608,7 @@ function renderSetList(){
       activeSetId = s.id;
       quizAnswers = {}; quizGraded = false; cardIndex = 0;
       renderSetList(); renderActiveSetLabel();
-      renderSummary(); renderPractice(); renderQuiz(); renderCards();
+      renderSummary(); renderTutor(); renderPractice(); renderQuiz(); renderCards();
     });
     row.querySelector('.share-ic').addEventListener('click', (e)=>{
       e.stopPropagation();
@@ -1602,7 +1622,7 @@ function renderSetList(){
       if(activeSetId===s.id) activeSetId = sets.length ? sets[0].id : null;
       await saveSets(); await saveGrades();
       renderSetList(); renderActiveSetLabel();
-      renderSummary(); renderPractice(); renderQuiz(); renderCards(); renderGrades();
+      renderSummary(); renderTutor(); renderPractice(); renderQuiz(); renderCards(); renderGrades();
       renderStats();
       renderDailyQuestion();
       renderDailyTask();
@@ -1722,6 +1742,98 @@ function toggleSpeak(text){
   utter.onerror = () => { if(btn) btn.textContent = '🔊 הקראת הסיכום'; };
   window.speechSynthesis.speak(utter);
   if(btn) btn.textContent = '⏹️ עצירת הקראה';
+}
+
+// ---------- AI Tutor ("למד אותי") ----------
+let tutorMessages = [];
+let tutorSetId = null;
+let tutorSystemPrompt = '';
+let tutorLoading = false;
+
+async function callClaudeChat(system, messages){
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-6",
+      max_tokens: 1024,
+      system: system,
+      messages: messages
+    })
+  });
+  const data = await response.json();
+  return (data.content || []).map(b => b.text || "").join("\n");
+}
+
+function renderTutor(){
+  const el = document.getElementById('tutorContent');
+  if(!el) return;
+  const set = getActiveSet();
+  if(!set){ el.innerHTML = '<div class="empty">בחרו ערכת לימוד בלשונית "חומר לימוד"</div>'; return; }
+  if(tutorSetId !== set.id || tutorMessages.length === 0){
+    el.innerHTML = `<p class="hint" style="margin-bottom:14px;">מורה פרטי אינטראקטיבי: מסביר מושג, שואל שאלה, מחכה לתשובה שלכם ומתקן בעדינות — צעד אחר צעד על סמך "${escapeHtml(set.title)}".</p>
+      <button class="btn btn-yellow" id="startTutorBtn">🎓 התחל שיעור</button>`;
+    document.getElementById('startTutorBtn').addEventListener('click', ()=>startTutorLesson(set));
+    return;
+  }
+  const visible = tutorMessages.slice(1);
+  const bubbles = visible.map(m=>`<div class="chat-msg ${m.role}">${escapeHtml(m.content)}</div>`).join('');
+  el.innerHTML = `
+    <div class="tutor-chat" id="tutorChatArea">
+      ${bubbles}
+      ${tutorLoading ? '<div class="tutor-loading">🎓 המורה חושב...</div>' : ''}
+    </div>
+    <div class="chat-input-row">
+      <input type="text" id="tutorInput" placeholder="כתבו את התשובה שלכם..." ${tutorLoading?'disabled':''}>
+      <button class="btn btn-yellow" id="tutorSendBtn" ${tutorLoading?'disabled':''}>שלח</button>
+    </div>
+    <div style="margin-top:10px;"><button class="btn btn-ghost" id="tutorRestartBtn">🔄 שיעור חדש</button></div>
+  `;
+  const chatArea = document.getElementById('tutorChatArea');
+  if(chatArea) chatArea.scrollTop = chatArea.scrollHeight;
+  const sendBtn = document.getElementById('tutorSendBtn');
+  const input = document.getElementById('tutorInput');
+  if(sendBtn) sendBtn.addEventListener('click', sendTutorAnswer);
+  if(input) input.addEventListener('keydown', (e)=>{ if(e.key==='Enter') sendTutorAnswer(); });
+  document.getElementById('tutorRestartBtn').addEventListener('click', ()=>{
+    tutorMessages = []; tutorSetId = null; renderTutor();
+  });
+}
+
+async function startTutorLesson(set){
+  tutorSetId = set.id;
+  tutorSystemPrompt = `אתה מורה פרטי סבלני ומעודד המלמד תלמיד/ה ישראלי/ת בעברית. חומר הלימוד:\n${set.content}\n\nהנחיות: בכל תשובה שלך הסבר מושג אחד קצר וברור מתוך החומר, ואז שאל שאלה אחת שבודקת הבנה שלו, ואז חכה לתשובת התלמיד/ה. כשתקבל תשובה: אם היא נכונה או חלקית נכונה — אשר בחיוב קצר ועבור למושג הבא, ברמת קושי מעט גבוהה יותר בהדרגה. אם היא שגויה — תקן בעדינות, הסבר שוב בקצרה, ושאל שוב על אותו מושג בניסוח אחר. שמור על תשובות קצרות (2-4 משפטים), חמות ומעודדות. אל תסביר את כל החומר בבת אחת.`;
+  tutorMessages = [{role:'user', content:'שלום, אני מוכן/ה להתחיל את השיעור.'}];
+  tutorLoading = true;
+  renderTutor();
+  try{
+    const reply = await callClaudeChat(tutorSystemPrompt, tutorMessages);
+    tutorMessages.push({role:'assistant', content: reply.trim()});
+  }catch(e){
+    tutorMessages.push({role:'assistant', content: 'משהו השתבש בפתיחת השיעור. נסו ללחוץ שוב על "שיעור חדש".'});
+  }
+  tutorLoading = false;
+  renderTutor();
+}
+
+async function sendTutorAnswer(){
+  if(tutorLoading) return;
+  const input = document.getElementById('tutorInput');
+  const text = input.value.trim();
+  if(!text) return;
+  tutorMessages.push({role:'user', content:text});
+  tutorLoading = true;
+  input.value = '';
+  renderTutor();
+  try{
+    const reply = await callClaudeChat(tutorSystemPrompt, tutorMessages);
+    tutorMessages.push({role:'assistant', content: reply.trim()});
+    await addXP(10);
+  }catch(e){
+    tutorMessages.push({role:'assistant', content: 'משהו השתבש. נסו לשלוח את התשובה שוב.'});
+  }
+  tutorLoading = false;
+  renderTutor();
 }
 
 function mdToHtml(text){
