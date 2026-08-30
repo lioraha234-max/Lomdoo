@@ -493,7 +493,6 @@
   <nav class="drawer-nav">
     <button class="drawer-item active" data-tab="material" data-color="var(--yellow)">📎 <span>חומר לימוד</span></button>
     <button class="drawer-item" data-tab="summary" data-color="var(--yellow)">✏️ <span>סיכום</span></button>
-    <button class="drawer-item" data-tab="tutor" data-color="var(--teal)">🎓 <span>למד אותי</span></button>
     <button class="drawer-item" data-tab="practice" data-color="var(--blue)">💬 <span>שאלות תרגול</span></button>
     <button class="drawer-item" data-tab="quiz" data-color="var(--pink)">📝 <span>מבחן אמריקאי</span></button>
     <button class="drawer-item" data-tab="cards" data-color="var(--green)">🗂️ <span>כרטיסיות</span></button>
@@ -570,14 +569,6 @@
     </div>
   </section>
 
-  <!-- TUTOR -->
-  <section class="panel" id="panel-tutor">
-    <div class="card">
-      <h2>🎓 למד אותי</h2>
-      <div id="tutorContent"><div class="empty">בחרו ערכת לימוד בלשונית "חומר לימוד"</div></div>
-    </div>
-  </section>
-
   <!-- PRACTICE -->
   <section class="panel" id="panel-practice">
     <div class="card">
@@ -645,7 +636,7 @@
     <p>Lomdoo היא עוזרת לימוד אישית: מדביקים חומר לימוד, ובעזרת בינה מלאכותית מקבלים סיכום, שאלות תרגול, מבחן אמריקאי וכרטיסיות — הכל בעברית, הכל מותאם בדיוק לחומר שהעליתם.</p>
 
     <h2>איך זה עובד מאחורי הקלעים</h2>
-    <p>כשאתם יוצרים סיכום, שאלות, מבחן או כרטיסיות, החומר שהדבקתם נשלח למודל השפה של Claude (Anthropic) כדי לייצר את התוכן. שאר הנתונים — הערכות, הציונים וההתקדמות שלכם — נשמרים במאגר האישי שלכם בלבד ולא משותפים עם אף אחד, אלא אם תבחרו לשתף ערכה ידנית.</p>
+    <p>כשאתם יוצרים סיכום, שאלות, מבחן או כרטיסיות, החומר שהדבקתם נשלח למודל השפה של Google Gemini כדי לייצר את התוכן. שאר הנתונים — הערכות, הציונים וההתקדמות שלכם — נשמרים במאגר האישי שלכם בלבד ולא משותפים עם אף אחד, אלא אם תבחרו לשתף ערכה ידנית.</p>
 
     <h2>שיתוף ערכות עם חברים</h2>
     <p>בכל ערכת לימוד יש כפתור שיתוף שיוצר קוד טקסט. שולחים אותו לחבר בוואטסאפ או במייל, והוא מדביק אותו בשדה הייבוא בלשונית "חומר לימוד" — וכל הסיכום, השאלות, המבחן והכרטיסיות עוברים אליו מוכנים, בלי לחכות ליצירה מחדש.</p>
@@ -1634,7 +1625,7 @@ function renderSetList(){
   });
 }
 
-// ---------- Claude API helper ----------
+// ---------- AI helper (calls our /api/ai proxy, backed by Gemini) ----------
 async function callClaude(prompt){
   const data = await apiCall('/api/ai', 'POST', {
     max_tokens: 4000,
