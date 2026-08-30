@@ -537,9 +537,11 @@
       <input type="text" id="setTag" placeholder="קטגוריה">
       <label for="setContent">הדביקו כאן את חומר הלימוד</label>
       <textarea id="setContent" placeholder="הדביקו טקסט, סיכום הרצאה, פרק מספר וכו׳..."></textarea>
-      <div style="margin-top:10px;">
+      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
         <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none;">
         <button class="btn btn-ghost" id="photoUploadBtn">📷 העלה תמונה של המחברת</button>
+        <input type="file" id="docInput" accept=".pdf,.pptx" style="display:none;">
+        <button class="btn btn-ghost" id="docUploadBtn">📎 העלה PDF / PowerPoint</button>
       </div>
       <div style="margin-top:14px;">
         <button class="btn btn-yellow" id="createSetBtn">שמור ערכת לימוד</button>
@@ -1687,6 +1689,114 @@ document.getElementById('photoInput').addEventListener('change', (e)=>{
     e.target.value = '';
   };
   reader.readAsDataURL(file);
+});
+
+// ---------- PDF / PowerPoint upload ----------
+function loadScriptOnce(src, isLoaded){
+  return new Promise((resolve, reject)=>{
+    if(isLoaded()){ resolve(); return; }
+    const existing = document.querySelector(`script[src="${src}"]`);
+    if(existing){
+      existing.addEventListener('load', ()=>resolve());
+      existing.addEventListener('error', ()=>reject(new Error('טעינת ספריה נכשלה')));
+      return;
+    }
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = ()=>resolve();
+    s.onerror = ()=>reject(new Error('טעינת ספריה נכשלה'));
+    document.head.appendChild(s);
+  });
+}
+
+async function ensurePdfJs(){
+  await loadScriptOnce(
+    'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js',
+    () => typeof window.pdfjsLib !== 'undefined'
+  );
+  if(window.pdfjsLib && window.pdfjsLib.GlobalWorkerOptions && !window.pdfjsLib.GlobalWorkerOptions.workerSrc){
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+  }
+}
+
+async function ensureJSZip(){
+  await loadScriptOnce(
+    'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
+    () => typeof window.JSZip !== 'undefined'
+  );
+}
+
+async function extractPdfText(arrayBuffer){
+  await ensurePdfJs();
+  const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  let fullText = '';
+  for(let i=1; i<=pdf.numPages; i++){
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const pageText = content.items.map(it=>it.str).join(' ');
+    fullText += (fullText ? '\n\n' : '') + pageText;
+  }
+  return fullText;
+}
+
+async function extractPptxText(arrayBuffer){
+  await ensureJSZip();
+  const zip = await window.JSZip.loadAsync(arrayBuffer);
+  const slideFiles = Object.keys(zip.files)
+    .filter(name => /^ppt\/slides\/slide\d+\.xml$/.test(name))
+    .sort((a,b)=>{
+      const na = parseInt(a.match(/slide(\d+)\.xml/)[1]);
+      const nb = parseInt(b.match(/slide(\d+)\.xml/)[1]);
+      return na - nb;
+    });
+  if(!slideFiles.length) throw new Error('לא נמצאו שקופיות בקובץ');
+  let fullText = '';
+  for(let i=0; i<slideFiles.length; i++){
+    const xmlStr = await zip.files[slideFiles[i]].async('string');
+    const doc = new DOMParser().parseFromString(xmlStr, 'application/xml');
+    const nodes = doc.getElementsByTagName('a:t');
+    const slideText = Array.from(nodes).map(n=>n.textContent).join(' ').trim();
+    if(slideText) fullText += (fullText ? '\n\n' : '') + `שקופית ${i+1}:\n` + slideText;
+  }
+  return fullText;
+}
+
+document.getElementById('docUploadBtn').addEventListener('click', ()=> document.getElementById('docInput').click());
+document.getElementById('docInput').addEventListener('change', (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const name = file.name.toLowerCase();
+  const isPdf = name.endsWith('.pdf');
+  const isPptx = name.endsWith('.pptx');
+  if(!isPdf && !isPptx){
+    showToast('נתמכים רק קבצי PDF או PowerPoint (.pptx)');
+    e.target.value = '';
+    return;
+  }
+  const btn = document.getElementById('docUploadBtn');
+  const textarea = document.getElementById('setContent');
+  const originalText = btn.textContent;
+  const reader = new FileReader();
+  reader.onload = async (ev)=>{
+    btn.disabled = true;
+    btn.textContent = isPdf ? '📎 מחלץ טקסט מה-PDF...' : '📎 מחלץ טקסט מהמצגת...';
+    try{
+      const arrayBuffer = ev.target.result;
+      const text = isPdf ? await extractPdfText(arrayBuffer) : await extractPptxText(arrayBuffer);
+      const cleaned = text.trim();
+      if(!cleaned){ showToast('לא נמצא טקסט הניתן לחילוץ בקובץ'); }
+      else{
+        textarea.value = textarea.value ? (textarea.value + '\n\n' + cleaned) : cleaned;
+        showToast('הטקסט חולץ מהקובץ 📎✨');
+      }
+    }catch(err){
+      showToast('שגיאה בעיבוד הקובץ: ' + (err.message || 'שגיאה'));
+    }
+    btn.disabled = false;
+    btn.textContent = originalText;
+    e.target.value = '';
+  };
+  reader.readAsArrayBuffer(file);
 });
 
 function parseJsonLoose(text){
