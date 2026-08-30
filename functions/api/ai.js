@@ -20,7 +20,7 @@ export async function onRequestPost({ request, env }) {
   }
 
   const payload = {
-    model: 'claude-sonnet-4-6',
+    model: 'claude-sonnet-5',
     max_tokens: Math.min(body.max_tokens || 4000, 4096),
     messages: body.messages
   };
